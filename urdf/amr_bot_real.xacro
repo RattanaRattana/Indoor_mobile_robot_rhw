@@ -1,0 +1,306 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="idr_robot">
+
+    <!--................................ XACRO CONSTANTS .............................. -->
+
+    <xacro:property name="chassis_mass" value="70"/>
+    <xacro:property name="chassis_length" value="0.655"/>
+    <xacro:property name="chassis_width" value="0.478"/>
+    <xacro:property name="chassis_height" value="0.1685"/>
+
+    <xacro:property name="traction_wheel_mass" value="1"/>
+    <xacro:property name="traction_wheel_base" value="0.88"/>
+    <xacro:property name="traction_max_wheel_torque" value="20000"/>
+    <xacro:property name="traction_wheel_friction" value="5.0"/>
+
+    <xacro:property name="trolley_wheel_mass" value="0.1"/>
+    <xacro:property name="trolley_track_width" value="0.321"/> <!-- distance from center of front or back left wheel to right wheel-->
+    <xacro:property name="trolley_wheel_friction" value="0.0"/>
+    <xacro:property name="trolley_wheel_radius" value="0.0375"/>
+    <!-- a small constant -->
+    <xacro:property name="eps" value="0.002"/>
+
+    <xacro:property name="traction_wheel_radius" value="0.0842"/>
+    <xacro:property name="traction_wheel_width" value="0.05"/>
+    <xacro:property name="traction_track_width" value="0.420"/> <!-- distance from center of middle left wheel to right wheel-->
+
+    <xacro:property name="two_d_lidar_update_rate" value="30"/>
+    <xacro:property name="two_d_lidar_sample_size" value="361"/>
+    <xacro:property name="two_d_lidar_min_angle" value="0"/>
+    <xacro:property name="two_d_lidar_max_angle" value="360"/>
+    <xacro:property name="two_d_lidar_min_range" value="0.6"/>
+    <xacro:property name="two_d_lidar_max_range" value="8"/>
+
+    <xacro:arg name="gpu" default="false"/>
+    <xacro:property name="gpu" value="$(arg gpu)" />
+    <xacro:arg name="organize_cloud" default="false"/>
+    <xacro:property name="organize_cloud" value="$(arg organize_cloud)" />
+
+    <xacro:property name="camera_baseline" value="0.06"/>
+    <xacro:property name="camera_height" value="0.10"/>
+    <xacro:property name="camera_horizontal_fov" value="60"/>
+
+    <xacro:arg name="robot_namespace" default=""/>
+    <xacro:arg name="wheel_odom_topic" default="odom" />
+    <xacro:arg name="camera_enabled" default="true" />
+    <xacro:arg name="stereo_camera_enabled" default="false" />
+    <xacro:arg name="two_d_lidar_enabled" default="false" />
+    <xacro:arg name="publish_wheel_odom_tf" default="true" />
+    <xacro:arg name="ground_truth_frame" default="map"/>
+    <xacro:arg name="sim_gazebo" default="false" />
+    <xacro:arg name="sim_ign" default="false" />
+    <xacro:arg name="sim_gz" default="false" />
+    <xacro:arg name="odometry_source" default="world" />
+
+    <xacro:property name="odometry_source" value="$(arg odometry_source)"/>
+
+    <!-- ............................... LOAD MACROS ................................. -->
+
+    <xacro:include filename="$(find idr_robot)/urdf/materials.xacro"/>
+    <xacro:include filename="$(find idr_robot)/urdf/macros.xacro"/>
+
+    <xacro:if value="$(arg sim_gazebo)">
+        <xacro:include filename="$(find idr_robot)/urdf/gazebo.xacro"/>
+    </xacro:if>
+
+    <xacro:if value="$(arg sim_ign)">
+        <xacro:include filename="$(find idr_robot)/urdf/ign.xacro"/>
+    </xacro:if>
+
+    <xacro:if value="$(arg sim_gz)">
+        <xacro:include filename="$(find idr_robot)/urdf/gz.xacro"/>
+    </xacro:if>
+
+    <!-- .......................... ...... BASE LINK .................................. -->
+    <link name="base_footprint"/>
+
+    <link name="base_link"/>
+
+    <joint name="base_joint" type="fixed">
+        <parent link="base_footprint"/>
+        <child link="base_link"/>
+        <origin xyz="0.0 0.0 ${chassis_height/2 + traction_wheel_radius - 0.02}" rpy="0 0 0.0" />  <!-- 0.02 is offset to make robot on the ground -->
+    </joint>
+
+    <link name="chassis_link">
+
+        <collision>
+            <origin xyz="0 0 -0.05" rpy="0 0 0" />
+            <geometry>
+                <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+            </geometry>
+        </collision>
+
+        <visual>
+            <origin xyz="0 0 -0.02" rpy="0 0 3.14" />
+            <geometry>
+                <mesh filename="file://$(find idr_robot)/meshes/amr_bot_body.dae" scale="1 1 1"/>
+            </geometry>
+        </visual>
+
+        <inertial>
+            <mass value="${chassis_mass}" />
+            <xacro:box_inertia m="${chassis_mass}" x="${chassis_length}" y="${chassis_width}" z = "${chassis_height}"/>
+        </inertial>
+
+    </link>
+
+    <joint name="chassis_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="chassis_link"/>
+        <origin xyz="0.0 0 0" rpy="0 0 0.0" />
+    </joint>
+
+    <!-- ................................ WHEELS ..................................... -->
+
+    <xacro:trolley_wheel cardinality="front" dexterity="left" origin_x="${chassis_length/2}" origin_y="${trolley_track_width/2}" origin_z="-${trolley_wheel_radius+chassis_height/2}"/>
+    <xacro:trolley_wheel cardinality="front" dexterity="right" origin_x="${chassis_length/2}" origin_y="-${trolley_track_width/2}" origin_z="-${trolley_wheel_radius+chassis_height/2}"/>
+
+    <xacro:trolley_wheel cardinality="back" dexterity="left" origin_x="-${chassis_length/2}" origin_y="${trolley_track_width/2}" origin_z="-${trolley_wheel_radius+chassis_height/2}"/>
+    <xacro:trolley_wheel cardinality="back" dexterity="right" origin_x="-${chassis_length/2}" origin_y="-${trolley_track_width/2}" origin_z="-${trolley_wheel_radius+chassis_height/2}"/>
+
+    <xacro:traction_wheel_left cardinality="middle" dexterity="left" origin_x="0" origin_y="${traction_track_width/2}" origin_z="-${chassis_height/2+2*trolley_wheel_radius+eps-traction_wheel_radius}"/>
+    <xacro:traction_wheel_right cardinality="middle" dexterity="right" origin_x="0" origin_y="-${traction_track_width/2}" origin_z="-${chassis_height/2+2*trolley_wheel_radius+eps-traction_wheel_radius}"/>
+
+    <!-- ............................. 2D LIDAR ........................................ -->
+
+    <xacro:if value="$(arg two_d_lidar_enabled)">
+
+        <link name="two_d_lidar">
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <cylinder length="0.06" radius="0.075"/>
+                </geometry>
+            </collision>
+
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <cylinder length="0.06" radius="0.075"/>
+                </geometry>
+                <material name="aluminium"/>
+            </visual>
+
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <mass value="0.1"/>
+                <xacro:cylinder_inertia m="0.1" r="0.075" h="0.06"/>
+            </inertial>
+        </link>
+
+        <joint name="two_d_lidar_joint" type="fixed">
+            <parent link="base_link"/>
+            <child link="two_d_lidar"/>
+            <origin xyz="0.0 0 0.08" rpy="0 0 0" />
+        </joint> 
+
+        <gazebo reference="two_d_lidar">
+            <material>Gazebo/White</material>
+        </gazebo>
+
+    </xacro:if>
+
+    <!-- ............................. 3D LIDAR ........................................ -->
+
+    <link name="livox_frame"/>
+
+    <joint name="3D_lidar_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="livox_frame"/>
+        <origin xyz="0.315 0.0 0.16" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <!-- ............................. IMU ........................................ -->
+
+    <link name="imu_frame"/>
+
+    <joint name="imu_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="imu_frame"/>
+        <origin xyz="0.0 0.0 0.08" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <!-- ............................. CAMERA ........................................ -->
+
+    <xacro:if value="$(arg camera_enabled)">
+
+        <!-- KINECT CAMERA -->
+
+        <link name="camera_base">
+
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <box size="0.07 0.3 0.09"/>
+                </geometry>
+            </collision>
+
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0"/>
+                    <!-- <mesh filename="file://$(find idr_robot)/meshes/kinect/d415.dae"/> -->
+                </geometry>
+                <material name="black"/>
+            </visual>
+
+            <inertial>
+                <mass value="0.01"/>
+                <xacro:box_inertia m="0.01" x="0.07" y="0.3" z = "0.09"/>
+            </inertial>
+
+        </link>
+
+        <joint name="kinect_camera_joint" type="fixed">
+            <origin rpy="0 0 0" xyz="${0.04+chassis_length/2} -0.032 ${0.065+chassis_height/7}"/>
+            <parent link="base_link"/>
+            <child link="camera_base"/>
+        </joint>
+
+    </xacro:if> 
+
+    <!-- .............................STEREO CAMERA ........................................ -->
+
+    <xacro:if value="$(arg stereo_camera_enabled)">
+
+        <!-- STEREO CAMERA -->
+
+        <link name="stereo_camera">
+
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <box size="0.07 0.3 0.09"/>
+                </geometry>
+            </collision>
+
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="0"/>
+                    <!-- <mesh filename="file://$(find idr_robot)/meshes/kinect/d415.dae"/> -->
+                </geometry>
+                <material name="black"/>
+            </visual>
+
+            <inertial>
+                <mass value="0.01"/>
+                <xacro:box_inertia m="0.01" x="0.07" y="0.3" z = "0.09"/>
+            </inertial>
+
+        </link>
+
+        <joint name="stereo_camera_joint" type="fixed">
+            <origin rpy="0 0 0" xyz="${chassis_length/2} 0 ${chassis_height/7}"/>
+            <parent link="base_link"/>
+            <child link="stereo_camera"/>
+        </joint>
+
+        <link name="stereo_camera_optical"/>
+
+        <joint name="stereo_camera_optical_joint" type="fixed">
+            <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+            <parent link="stereo_camera"/>
+            <child link="stereo_camera_optical"/>
+        </joint>
+
+    </xacro:if>
+
+    <!-- ............................. ROOF ........................................ -->
+
+    <link name="lifting_link">
+
+        <collision>
+            <origin xyz="-0.1 0 0.015" rpy="0 0 0" />
+            <geometry>
+                <box size="0.65 0.5 0.02"/>
+            </geometry>
+        </collision>
+
+        <visual>
+                <origin xyz="0.2225 -0.2393 -0.155" rpy="1.57 0 3.14" />
+                <geometry>
+                    <!--box size="0.5 0.5 0.01" /-->
+                    <mesh filename="file://$(find idr_robot)/meshes/lifting.STL" scale="0.001 0.001 0.001"/>
+                </geometry>
+                <material name="white"/>
+            </visual>
+
+        <inertial>
+            <mass value="0.01"/>
+            <xacro:box_inertia m="0.2" x="1" y="0.6" z = "0.015"/>
+        </inertial>
+
+    </link>
+
+    <joint name="lift_joint" type="prismatic">
+        <parent link="base_footprint"/>
+        <child link="lifting_link"/>
+        <origin xyz="0 0 0.31" rpy="0 0 0"/>
+        <axis xyz="0 0 1" />
+        <limit lower="0" upper="0.05" effort="200.0" velocity="0.01"/>
+        <dynamics damping="20.0" friction="5.0"/>
+    </joint> 
+
+</robot> 

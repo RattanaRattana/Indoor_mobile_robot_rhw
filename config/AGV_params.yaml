@@ -1,0 +1,18 @@
+/**:
+  ros__parameters:
+    agv_ip: "192.168.31.7"
+    port: 1202
+
+
+send_cmd_vel_websocket_agv_node: # node name, not executable name
+  ros__parameters:
+    send_rate: 10.0
+
+
+rece_odom_websocket_agv_node: # node name, not executable name
+  ros__parameters:
+    publish_rate: 100.0
+    stale_timeout: 0.5
+    auto_reconnect: false
+    reconnect_delay: 1.0
+    auto_calibrate: true
