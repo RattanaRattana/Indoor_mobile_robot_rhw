@@ -4,6 +4,16 @@
 
 ## control schematic
 
+## Approach seedbed
+
+![Robot Demo](images/case_1.gif "path generation case 1")
+
+<p align="center">
+  <img src="images/case_1.gif" alt="Path generation case 1" width="500"/>
+  <br>
+  Seedbed path generation.
+</p>
+
 ## agv_lift_controller
 
 ROS 2 C++ package that exposes three services to control the AGV lift mechanism
