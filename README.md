@@ -6,13 +6,26 @@
 
 ## Approach seedbed
 
-![Robot Demo](images/case_1.gif "path generation case 1")
-
-<p align="center">
-  <img src="images/case_1.gif" alt="Path generation case 1" width="500"/>
+<!-- <p align="center">
+  <img src="images/approach_seedbed_case_1.gif" alt="Path generation case 1" width="640"/>
   <br>
   Seedbed path generation.
-</p>
+</p> -->
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="images/approach_seedbed_case_1.gif" width="400"><br>
+      Case 1
+    </td>
+    <td align="center">
+      <img src="images/approach_seedbed_case_2.gif" width="400"><br>
+      Case 2
+    </td>
+  </tr>
+  
+</table>
+Comparing different cases
 
 ## agv_lift_controller
 
