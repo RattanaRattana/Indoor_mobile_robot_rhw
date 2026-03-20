@@ -1,10 +1,10 @@
 # Indoor_mobile_robot_dev
 
-## agv platform
+## Moble Robot Platform
 
-## control schematic
+## Control Schematic
 
-## Approach seedbed
+## Approach Seedbed
 
 <!-- <p align="center">
   <img src="images/approach_seedbed_case_1.gif" alt="Path generation case 1" width="640"/>

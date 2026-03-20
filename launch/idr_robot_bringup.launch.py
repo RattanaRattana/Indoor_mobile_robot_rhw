@@ -1,5 +1,7 @@
 from launch import LaunchDescription
-from launch.substitutions import PathJoinSubstitution, Command, FindExecutable
+from launch.substitutions import PathJoinSubstitution, Command, FindExecutable 
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -57,10 +59,40 @@ def generate_launch_description():
 
     )
 
+    cmd_vel_mux = Node(
+        package='idr_robot_hw_cpp',
+        executable='cmd_vel_mux_node',
+        output='screen'
+
+    )
+
+    teleop_joy_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('remote_con'),
+                'launch',
+                'teleop_joy_logitech.launch.py'
+            ])
+        )
+    )
+
+    rviz_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('idr_robot_hw_cpp'),
+                'launch',
+                'rviz.launch.py'
+            ])
+        )
+    )
+
     ld.add_action(send_cmd_vel_to_AGV)
     ld.add_action(read_odom_from_AGV)
     ld.add_action(send_lifting_state_to_AGV)
     ld.add_action(joy_lift_control)
     ld.add_action(odom_to_tf_and_path)
+    ld.add_action(cmd_vel_mux)
+    ld.add_action(teleop_joy_launch)
+    ld.add_action(rviz_launch)
 
     return ld

@@ -110,4 +110,12 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+add_executable(cmd_vel_mux_node src/cmd_vel_mux_node.cpp)
+ament_target_dependencies(cmd_vel_mux_node rclcpp geometry_msgs)
+
+install(TARGETS
+  cmd_vel_mux_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
